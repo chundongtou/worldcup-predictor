@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Team {
+  id                    String   @id @default(cuid())
+  name                  String   @unique
+  flagCode              String
+  groupName             String
+  eloRating             Int
+  fifaRanking           Int?
+  marketValue           Float?
+  confederation         String?
+  worldCupAppearances   Int      @default(0)
+  bestResult            String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  homeMatches Match[] @relation("HomeTeam")
+  awayMatches Match[] @relation("AwayTeam")
+
+  @@map("teams")
+}
+
+model Match {
+  id              String   @id @default(cuid())
+  round           String
+  groupName       String?
+  matchday        Int?
+  homeTeamId      String
+  awayTeamId      String
+  homeScore       Int?
+  awayScore       Int?
+  matchTime       DateTime
+  status          String   @default("scheduled")
+  stadium         String?
+  city            String?
+  eloHome         Int
+  eloAway         Int
+  isFinished      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  homeTeam        Team     @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam        Team     @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  aiPrediction    AiPrediction?
+  userPredictions UserPrediction[]
+  pointsLogs      PointsLog[]
+
+  @@index([round])
+  @@index([groupName])
+  @@index([matchTime])
+  @@index([status])
+  @@map("matches")
+}
+
+model AiPrediction {
+  id                 String   @id @default(cuid())
+  matchId            String   @unique
+  modelVersion       String
+  homeWinProb        Float
+  drawProb           Float
+  awayWinProb        Float
+  predictedHomeScore Int
+  predictedAwayScore Int
+  confidence         Float
+  topScores          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  match Match @relation(fields: [matchId], references: [id])
+
+  @@map("ai_predictions")
+}
+
+model User {
+  id                 String   @id @default(cuid())
+  email              String   @unique
+  name               String?
+  favoriteTeam       String?
+  totalPoints        Int      @default(0)
+  correctPredictions Int      @default(0)
+  totalPredictions   Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  predictions UserPrediction[]
+  pointsLogs  PointsLog[]
+
+  @@map("users")
+}
+
+model UserPrediction {
+  id           String   @id @default(cuid())
+  userId       String
+  matchId      String
+  predHome     Int
+  predAway     Int
+  confidence   Int      @default(5)
+  pointsEarned Int?
+  createdAt    DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  match Match @relation(fields: [matchId], references: [id])
+
+  @@unique([userId, matchId])
+  @@map("user_predictions")
+}
+
+model PointsLog {
+  id             String   @id @default(cuid())
+  userId         String
+  matchId        String
+  pointsAwarded  Int
+  reason         String
+  createdAt      DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  match Match @relation(fields: [matchId], references: [id])
+
+  @@map("points_log")
+}

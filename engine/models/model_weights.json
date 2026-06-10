@@ -1,0 +1,52 @@
+{
+  "dixon_coles_params": {
+    "baseline_goals": 1.4,
+    "home_advantage": 120,
+    "alpha": 0.18,
+    "rho": 0.001
+  },
+  "dixon_coles_metrics": {
+    "brier_score": 0.19906279036959879,
+    "n_training_samples": 40
+  },
+  "xgboost_model": {
+    "model_type": "XGBClassifier",
+    "features": [
+      "home_elo",
+      "away_elo",
+      "elo_diff",
+      "is_neutral",
+      "home_elo_normalized",
+      "away_elo_normalized"
+    ],
+    "feature_importances": {
+      "home_elo": 0.25,
+      "away_elo": 0.25,
+      "elo_diff": 0.3,
+      "is_neutral": 0.05,
+      "home_elo_normalized": 0.08,
+      "away_elo_normalized": 0.07
+    },
+    "n_estimators": 100,
+    "max_depth": 6,
+    "learning_rate": 0.1,
+    "status": "placeholder",
+    "message": "XGBoost model training not yet implemented. Using ELO-based heuristic."
+  },
+  "ensemble_weights": {
+    "ensemble_weights": {
+      "dixon_coles": 0.35,
+      "xgboost": 0.25,
+      "elo": 0.25,
+      "market_odds": 0.15
+    },
+    "weight_rationale": {
+      "dixon_coles": "Statistical model based on goal scoring patterns",
+      "xgboost": "Machine learning model using multiple features",
+      "elo": "Direct ELO rating based probability",
+      "market_odds": "Market consensus (placeholder)"
+    }
+  },
+  "training_timestamp": "2024-01-01T00:00:00Z",
+  "version": "1.0.0"
+}
