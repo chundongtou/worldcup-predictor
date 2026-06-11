@@ -1,0 +1,79 @@
+﻿name: Live Data Sync Pipeline
+
+on:
+  schedule:
+    # Run every 2 minutes during World Cup (June 11 - July 19, 2026)
+    - cron: '*/2 * * * *'
+  workflow_dispatch:
+    inputs:
+      force_full_sync:
+        description: 'Force full sync (ignore cache)'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+  AGENT_SECRET_KEY: ${{ secrets.AGENT_SECRET_KEY }}
+  API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+  FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
+  APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL || 'https://worldcup-predictor-7aewq7ppx-chundongtous-projects.vercel.app' }}
+  LIVE_SYNC_ENABLED: 'true'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run full pipeline
+        run: |
+          echo "🚀 Starting live data sync pipeline..."
+          echo "Time: $(date -u)"
+          
+          # Call the full pipeline endpoint
+          RESPONSE=$(curl -s -X GET "${APP_URL}/api/sync/full-pipeline" \
+            -H "x-cron-secret: ${CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            --max-time 120)
+          
+          echo "Pipeline response:"
+          echo "$RESPONSE" | jq . || echo "$RESPONSE"
+          
+          # Check if sync was successful
+          SUCCESS=$(echo "$RESPONSE" | jq -r '.success // false')
+          if [ "$SUCCESS" != "true" ]; then
+            echo "⚠️ Pipeline reported issues, but continuing..."
+          fi
+          
+          # Extract stats
+          SYNCED=$(echo "$RESPONSE" | jq -r '.steps[0].matchesUpdated // 0')
+          FINISHED=$(echo "$RESPONSE" | jq -r '.steps[0].matchesFinished // 0')
+          REVIEWED=$(echo "$RESPONSE" | jq -r '.steps[1].reviewedCount // 0')
+          
+          echo ""
+          echo "📊 Pipeline Summary:"
+          echo "  - Matches synced: $SYNCED"
+          echo "  - Matches finished: $FINISHED"
+          echo "  - Reviews generated: $REVIEWED"
+          
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+
+      - name: Report status
+        if: failure()
+        run: |
+          echo "❌ Pipeline failed!"
+          echo "Check the logs above for details."
