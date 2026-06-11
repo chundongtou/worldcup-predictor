@@ -1,0 +1,8 @@
+﻿{
+    "crons":  [
+                  {
+                      "path":  "/api/sync/full-pipeline",
+                      "schedule":  "*/2 * * * *"
+                  }
+              ]
+}
